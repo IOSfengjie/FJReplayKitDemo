@@ -22,6 +22,10 @@
     self.view.backgroundColor=[self randomColor];
     
 }
+-(void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event{
+    [super touchesBegan:touches withEvent:event];
+     self.view.backgroundColor=[self randomColor];
+}
 -(UIColor *) randomColor
 {
     CGFloat hue = ( arc4random() % 256 / 256.0 );

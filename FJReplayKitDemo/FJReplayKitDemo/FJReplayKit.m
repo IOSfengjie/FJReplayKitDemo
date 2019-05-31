@@ -8,6 +8,10 @@
 
 #import "FJReplayKit.h"
 
+//弱引用
+#define kWeakSelf(weakSelf) __weak __typeof(&*self)weakSelf = self;
+
+
 @interface FJReplayKit ()<RPPreviewViewControllerDelegate>
 /**开始录制*/
 @property (nonatomic,strong)UIButton *startBt;
@@ -68,11 +72,16 @@
     return replay;
 }
 -(void)startAction{
-    [_startBt setTitle:@"初始化中" forState:UIControlStateNormal];
+    dispatch_async(dispatch_get_main_queue(), ^{
+        
+    });
+    NSLog(@"%@",[NSThread currentThread]);
+    
+    [self.startBt setTitle:@"初始化中" forState:UIControlStateNormal];
     [[FJReplayKit sharedReplay] startRecord];
 }
 -(void)endAction{
-    [_startBt setTitle:@"开始录制" forState:UIControlStateNormal];
+    [self.startBt setTitle:@"开始录制" forState:UIControlStateNormal];
     [[FJReplayKit sharedReplay] stopRecordAndShowVideoPreviewController:YES];
 }
 //是否正在录制
@@ -90,24 +99,13 @@
         if ([[RPScreenRecorder sharedRecorder] isAvailable]) {
             NSLog(@"FJReplayKit:录制开始初始化");
             
-            [[RPScreenRecorder sharedRecorder] startRecordingWithMicrophoneEnabled:YES handler:^(NSError *error){
-                if (error) {
-                    NSLog(@"FJReplayKit:开始录制error %@",error);
-                    if ([_delegate respondsToSelector:@selector(replayRecordFinishWithVC:errorInfo:)]) {
-                        [_delegate replayRecordFinishWithVC:nil errorInfo:[NSString stringWithFormat:@"FJReplayKit:开始录制error %@",error]];
-                    }
-                }else{
-                    NSLog(@"FJReplayKit:开始录制");
-                    [self.startBt setTitle:@"正在录制" forState:UIControlStateNormal];
-                    if ([_delegate respondsToSelector:@selector(replayRecordStart)]) {
-                        [_delegate replayRecordStart];
-                        
-                        
-                    }
-                }
-            }];
-        }
-        else {
+            if ([UIDevice currentDevice].systemVersion.floatValue < 10.0f) {
+                [self ios9_ios10];
+            }else{
+                [self ios_10];
+            }
+            
+        }else {
             NSLog(@"FJReplayKit:环境不支持ReplayKit录制");
             if ([_delegate respondsToSelector:@selector(replayRecordFinishWithVC:errorInfo:)]) {
                 [_delegate replayRecordFinishWithVC:nil errorInfo:@"FJReplayKit:环境不支持ReplayKit录制"];
@@ -121,21 +119,64 @@
         }
     }
 }
+-(void)ios_10{
+     kWeakSelf(weakSelf);
+    [[RPScreenRecorder sharedRecorder] startRecordingWithHandler:^(NSError * _Nullable error) {
+        if (error) {
+            NSLog(@"FJReplayKit:开始录制error %@",error);
+            if ([weakSelf.delegate respondsToSelector:@selector(replayRecordFinishWithVC:errorInfo:)]) {
+                [weakSelf.delegate replayRecordFinishWithVC:nil errorInfo:[NSString stringWithFormat:@"FJReplayKit:开始录制error %@",error]];
+            }
+        }else{
+            NSLog(@"FJReplayKit:开始录制");
+            [self.startBt setTitle:@"正在录制" forState:UIControlStateNormal];
+            if ([weakSelf.delegate respondsToSelector:@selector(replayRecordStart)]) {
+                [weakSelf.delegate replayRecordStart];
+            }
+        }
+    }];
+}
+-(void)ios9_ios10 API_DEPRECATED("Use microphoneEnabaled property", ios(9.0, 10.0)){
+    
+    kWeakSelf(weakSelf);
+    
+    if ([UIDevice currentDevice].systemVersion.floatValue < 10.0f) {
+        
+        [[RPScreenRecorder sharedRecorder] startRecordingWithMicrophoneEnabled:YES handler:^(NSError *error){
+            if (error) {
+                NSLog(@"FJReplayKit:开始录制error %@",error);
+                
+                if ([weakSelf.delegate respondsToSelector:@selector(replayRecordFinishWithVC:errorInfo:)]) {
+                    [weakSelf.delegate replayRecordFinishWithVC:nil errorInfo:[NSString stringWithFormat:@"FJReplayKit:开始录制error %@",error]];
+                }
+            }else{
+                NSLog(@"FJReplayKit:开始录制");
+                [self.startBt setTitle:@"正在录制" forState:UIControlStateNormal];
+                if ([weakSelf.delegate respondsToSelector:@selector(replayRecordStart)]) {
+                    [weakSelf.delegate replayRecordStart];
+                }
+            }
+        }];
+    }
+    
+}
 //结束录制
 -(void)stopRecordAndShowVideoPreviewController:(BOOL)isShow{
     NSLog(@"FJReplayKit:正在结束录制");
+    kWeakSelf(weakSelf);
+
     [[RPScreenRecorder sharedRecorder] stopRecordingWithHandler:^(RPPreviewViewController *previewViewController, NSError *  error){
         [self.startBt setTitle:@"开始录制" forState:UIControlStateNormal];
         if (error) {
             NSLog(@"FJReplayKit:结束录制error %@", error);
-            if ([_delegate respondsToSelector:@selector(replayRecordFinishWithVC:errorInfo:)]) {
-                [_delegate replayRecordFinishWithVC:nil errorInfo:[NSString stringWithFormat:@"FJReplayKit:结束录制error %@",error]];
+            if ([weakSelf.delegate respondsToSelector:@selector(replayRecordFinishWithVC:errorInfo:)]) {
+                [weakSelf.delegate replayRecordFinishWithVC:nil errorInfo:[NSString stringWithFormat:@"FJReplayKit:结束录制error %@",error]];
             }
         }
         else {
             NSLog(@"FJReplayKit:录制完成");
-            if ([_delegate respondsToSelector:@selector(replayRecordFinishWithVC:errorInfo:)]) {
-                [_delegate replayRecordFinishWithVC:previewViewController errorInfo:@""];
+            if ([weakSelf.delegate respondsToSelector:@selector(replayRecordFinishWithVC:errorInfo:)]) {
+                [weakSelf.delegate replayRecordFinishWithVC:previewViewController errorInfo:@""];
             }
             if (isShow) {
                 [self showVideoPreviewController:previewViewController animation:YES];
