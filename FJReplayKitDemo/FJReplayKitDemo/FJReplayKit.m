@@ -72,10 +72,6 @@
     return replay;
 }
 -(void)startAction{
-    dispatch_async(dispatch_get_main_queue(), ^{
-        
-    });
-    NSLog(@"%@",[NSThread currentThread]);
     
     [self.startBt setTitle:@"初始化中" forState:UIControlStateNormal];
     [[FJReplayKit sharedReplay] startRecord];
@@ -140,25 +136,22 @@
     
     kWeakSelf(weakSelf);
     
-    if ([UIDevice currentDevice].systemVersion.floatValue < 10.0f) {
-        
-        [[RPScreenRecorder sharedRecorder] startRecordingWithMicrophoneEnabled:YES handler:^(NSError *error){
-            if (error) {
-                NSLog(@"FJReplayKit:开始录制error %@",error);
-                
-                if ([weakSelf.delegate respondsToSelector:@selector(replayRecordFinishWithVC:errorInfo:)]) {
-                    [weakSelf.delegate replayRecordFinishWithVC:nil errorInfo:[NSString stringWithFormat:@"FJReplayKit:开始录制error %@",error]];
-                }
-            }else{
-                NSLog(@"FJReplayKit:开始录制");
-                [self.startBt setTitle:@"正在录制" forState:UIControlStateNormal];
-                if ([weakSelf.delegate respondsToSelector:@selector(replayRecordStart)]) {
-                    [weakSelf.delegate replayRecordStart];
-                }
+    [[RPScreenRecorder sharedRecorder] startRecordingWithMicrophoneEnabled:YES handler:^(NSError *error){
+        if (error) {
+            NSLog(@"FJReplayKit:开始录制error %@",error);
+            
+            if ([weakSelf.delegate respondsToSelector:@selector(replayRecordFinishWithVC:errorInfo:)]) {
+                [weakSelf.delegate replayRecordFinishWithVC:nil errorInfo:[NSString stringWithFormat:@"FJReplayKit:开始录制error %@",error]];
             }
-        }];
-    }
-    
+        }else{
+            NSLog(@"FJReplayKit:开始录制");
+            [self.startBt setTitle:@"正在录制" forState:UIControlStateNormal];
+            if ([weakSelf.delegate respondsToSelector:@selector(replayRecordStart)]) {
+                [weakSelf.delegate replayRecordStart];
+            }
+        }
+    }];
+
 }
 //结束录制
 -(void)stopRecordAndShowVideoPreviewController:(BOOL)isShow{
